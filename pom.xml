@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.houghtonassociates.bamboo.plugins</groupId>
     <artifactId>gReview</artifactId>
-    <version>1.3.0-SNAPSHOT</version>
+    <version>1.4.0</version>
 
     <organization>
         <name>Houghton Associates</name>
@@ -18,7 +18,7 @@
     <packaging>atlassian-plugin</packaging>
 
     <properties>
-        <bamboo.version>4.3.3</bamboo.version>
+        <bamboo.version>5.2.2</bamboo.version>
         <bamboo.data.version>3.2.2</bamboo.data.version>
         <amps.version>4.0</amps.version>
         <slf4j.version>1.6.4</slf4j.version>
@@ -30,12 +30,22 @@
 
     <repositories>
         <repository>
+            <id>jenkinsci</id>
+            <name>jenkinsci-releases</name>
+            <url>http://repo.jenkins-ci.org/releases</url>
+        </repository>
+        <repository>
             <id>atlassian-public</id>
             <url>https://maven.atlassian.com/content/groups/public/</url>
         </repository>
     </repositories>
 
     <pluginRepositories>
+        <pluginRepository>
+            <id>jenkinsci</id>
+            <name>jenkinsci-releases</name>
+            <url>http://repo.jenkins-ci.org/releases</url>
+        </pluginRepository>
         <pluginRepository>
             <id>atlassian-public</id>
             <url>https://maven.atlassian.com/content/groups/public/</url>
@@ -112,6 +122,10 @@
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.jms</groupId>
+                    <artifactId>jms</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

@@ -15,6 +15,17 @@
  */
 package com.houghtonassociates.bamboo.plugins;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.atlassian.bamboo.author.AuthorCachingFacade;
 import com.atlassian.bamboo.bandana.BambooBandanaContext;
 import com.atlassian.bamboo.build.logger.BuildLogger;
@@ -66,17 +77,6 @@ import org.eclipse.jgit.transport.Transport;
 import org.eclipse.jgit.transport.URIish;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 /**
  * This class allows bamboo to use Gerrit as if it were a repository.
@@ -741,10 +741,13 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
                     .getText("repository.gerrit.messages.error.retrieve"));
         }
 
+        // save last change in cache
+        GerritBandanaContext bandanaContext = new GerritBandanaContext(buildContext.getPlanKey());
+        bandanaManager.setValue(bandanaContext, change.getLastRevision(), System.currentTimeMillis());
 
         lastGerritChange = change;
 
-        BuildLogger buildLogger = buildLoggerManager.getBuildLogger(buildContext.getPlanResultKey());
+        BuildLogger buildLogger = buildLoggerManager.getLogger(buildContext.getPlanResultKey());
         RefSpec refSpec = new RefSpec().setForceUpdate(true).setSource(change.getCurrentPatchSet().getRef());
 
         buildLogger.addBuildLogEntry(change.getUrl());
@@ -831,6 +834,12 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
             ret.put(REPOSITORY_GERRIT_REVISION_NUMBER, lastGerritChange.getLastRevision());
         }
         return ret;
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getPlanRepositoryVariables() {
+        return Collections.emptyMap();
     }
 
     // BranchDetectionCapableRepository - implementations

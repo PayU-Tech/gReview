@@ -15,10 +15,14 @@
  */
 package com.houghtonassociates.bamboo.plugins.processor;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import com.atlassian.bamboo.build.CustomBuildProcessor;
 import com.atlassian.bamboo.builder.BuildState;
 import com.atlassian.bamboo.configuration.AdministrationConfiguration;
-import com.atlassian.bamboo.configuration.AdministrationConfigurationManager;
+import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.v2.build.BaseConfigurableBuildPlugin;
@@ -27,12 +31,8 @@ import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.houghtonassociates.bamboo.plugins.GerritRepositoryAdapter;
 import com.houghtonassociates.bamboo.plugins.dao.GerritChangeVO;
 import com.houghtonassociates.bamboo.plugins.dao.GerritService;
-import com.opensymphony.xwork.TextProvider;
+import com.opensymphony.xwork2.TextProvider;
 import org.apache.log4j.Logger;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Post processor which updates Gerrit after build completes
@@ -44,7 +44,7 @@ public class GerritProcessor extends BaseConfigurableBuildPlugin implements
 
     // dependencies
     private TextProvider textProvider = null;
-    private AdministrationConfigurationManager administrationConfigurationManager;
+    private AdministrationConfigurationAccessor administrationConfigurationAccessor;
 
     private Map<String, String> customConfiguration = null;
     private static final String GERRIT_RUN = "custom.gerrit.run";
@@ -64,13 +64,13 @@ public class GerritProcessor extends BaseConfigurableBuildPlugin implements
         this.textProvider = textProvider;
     }
 
-    public void setAdministrationConfigurationManager(AdministrationConfigurationManager administrationConfigurationManager) {
-        this.administrationConfigurationManager = administrationConfigurationManager;
+    public void setAdministrationConfigurationAccessor(AdministrationConfigurationAccessor administrationConfigurationAccessor) {
+        this.administrationConfigurationAccessor = administrationConfigurationAccessor;
     }
 
     private String buildStatusString(CurrentBuildResult results) {
         AdministrationConfiguration config =
-            administrationConfigurationManager.getAdministrationConfiguration();
+            administrationConfigurationAccessor.getAdministrationConfiguration();
 
         String resultsUrl =
             config.getBaseUrl() + "/browse/"
