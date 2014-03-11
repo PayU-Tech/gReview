@@ -557,9 +557,8 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         private long planID = 639917L;
 
         public GerritBandanaContext(String planKey) {
-            Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(planKey));
-            if (plan != null) {
-                planID = plan.getId();
+            if (planKey != null) {
+                planID = planKey.hashCode();
             }
         }
 
@@ -584,6 +583,19 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         }
     }
 
+    void cleanBandanaCache(String planKey) {
+
+        GerritBandanaContext bandanaContext = new GerritBandanaContext(planKey);
+
+        for (String k: bandanaManager.getKeys(bandanaContext)) {
+            Long v = (Long) bandanaManager.getValue(bandanaContext, k);
+            if (v < System.currentTimeMillis() - (rebuildTimeout * 60 * 1000L)) {
+                log.info(String.format("[%s] Remove from gReview cache: %s", planKey, k));
+                bandanaManager.removeValue(bandanaContext, k);
+            }
+        }
+    }
+
     @NotNull
     @Override
     public BuildRepositoryChanges collectChangesSinceLastBuild(@NotNull String planKey,
@@ -602,30 +614,26 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
 
         if ((change == null) && (lastVcsRevisionKey == null)) { // no waiting review and no last revision
 
+            Plan plan = null;
+            if (planManager != null) { // on remote agent planManager has null value
+                plan = planManager.getPlanByKey(PlanKeys.getPlanKey(planKey));
+            }
             // disable plan if no history
-            Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(planKey));
             if (plan != null) {
                 plan.setSuspendedFromBuilding(true);
                 planManager.savePlan(plan);
             }
             throw new RepositoryException(
                     textProvider.getText("processor.gerrit.messages.build.error.nochanges"));
-
         }
 
         if (change == null) { // no unverified changes on gerit - return last revision
             return new BuildRepositoryChangesImpl(lastVcsRevisionKey);
         }
 
+        cleanBandanaCache(planKey);
+
         GerritBandanaContext bandanaContext = new GerritBandanaContext(planKey);
-        // clean bandama DB
-        for (String k: bandanaManager.getKeys(bandanaContext)) {
-            Long v = (Long) bandanaManager.getValue(bandanaContext, k);
-            if (v < System.currentTimeMillis() - (rebuildTimeout * 60 * 1000L)) {
-                log.info(String.format("[%s] Clean from gReview cache: %s", planKey, k));
-                bandanaManager.removeValue(bandanaContext, k);
-            }
-        }
 
         Long bandRev = (Long) bandanaManager.getValue(bandanaContext, change.getLastRevision());
         if (bandRev != null) {
@@ -743,7 +751,11 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
 
         // save last change in cache
         GerritBandanaContext bandanaContext = new GerritBandanaContext(buildContext.getPlanKey());
-        bandanaManager.setValue(bandanaContext, change.getLastRevision(), System.currentTimeMillis());
+        try {
+            bandanaManager.setValue(bandanaContext, change.getLastRevision(), System.currentTimeMillis());
+        } catch (Exception e) {
+            log.warn(e.toString()); // after changing class GerritBandanaContext - ClassCastException may occurs
+        }
 
         lastGerritChange = change;
 
@@ -870,7 +882,7 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         }
 
         Git.init().setDirectory(tempDir).call();
-        Git git = null;
+        Git git;
         org.eclipse.jgit.lib.Repository repository = null;
         Transport transport = null;
         try {
