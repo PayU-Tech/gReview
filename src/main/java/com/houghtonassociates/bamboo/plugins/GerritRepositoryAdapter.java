@@ -627,11 +627,11 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
                     textProvider.getText("processor.gerrit.messages.build.error.nochanges"));
         }
 
+        cleanBandanaCache(planKey);
+
         if (change == null) { // no unverified changes on gerit - return last revision
             return new BuildRepositoryChangesImpl(lastVcsRevisionKey);
         }
-
-        cleanBandanaCache(planKey);
 
         GerritBandanaContext bandanaContext = new GerritBandanaContext(planKey);
 
@@ -750,7 +750,14 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         }
 
         // save last change in cache
-        GerritBandanaContext bandanaContext = new GerritBandanaContext(buildContext.getPlanKey());
+        String planKey;
+        if (buildContext.getParentBuildContext()!=null){
+            // Plan Key for buidContext is key for job - we need key for plan.
+            planKey =  buildContext.getParentBuildContext().getPlanKey();
+        } else {
+            planKey = buildContext.getPlanKey();
+        }
+        GerritBandanaContext bandanaContext = new GerritBandanaContext(planKey);
         try {
             bandanaManager.setValue(bandanaContext, change.getLastRevision(), System.currentTimeMillis());
         } catch (Exception e) {
