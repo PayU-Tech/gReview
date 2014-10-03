@@ -51,7 +51,7 @@ public class ViewGerritChainResultsAction extends ViewChainResult implements
 
     public GerritRepositoryAdapter getRepository() {
         if (repository == null) {
-            Repository repo = PlanHelper.getDefaultRepository(this.getPlan());
+            Repository repo = PlanHelper.getDefaultRepository(this.getImmutablePlan());
 
             if (repo instanceof GerritRepositoryAdapter) {
                 repository = (GerritRepositoryAdapter) repo;

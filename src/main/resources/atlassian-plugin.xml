@@ -44,6 +44,8 @@
     <component-import key="encryptionService" interface="com.atlassian.bamboo.security.EncryptionService" />
     <component-import key="repositoryDefinitionManager" interface="com.atlassian.bamboo.repository.RepositoryDefinitionManager" />
     <component-import key="planManager" name="Plan Manager" interface="com.atlassian.bamboo.plan.PlanManager"/>
+    <component-import key="decoratingAggregatedChainErrorAccessor" interface="com.atlassian.bamboo.logger.ErrorAccessor" />
+    <component-import key="projectManager" interface="com.atlassian.bamboo.project.ProjectManager"/>
 
     <repository key="gerrit" name="Gerrit Repository"
                      class="com.houghtonassociates.bamboo.plugins.GerritRepositoryAdapter">
