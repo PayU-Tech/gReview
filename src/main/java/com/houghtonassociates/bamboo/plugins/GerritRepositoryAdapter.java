@@ -749,21 +749,6 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
                     .getText("repository.gerrit.messages.error.retrieve"));
         }
 
-        // save last change in cache
-        String planKey;
-        if (buildContext.getParentBuildContext()!=null){
-            // Plan Key for buidContext is key for job - we need key for plan.
-            planKey =  buildContext.getParentBuildContext().getPlanKey();
-        } else {
-            planKey = buildContext.getPlanKey();
-        }
-        GerritBandanaContext bandanaContext = new GerritBandanaContext(planKey);
-        try {
-            bandanaManager.setValue(bandanaContext, change.getLastRevision(), System.currentTimeMillis());
-        } catch (Exception e) {
-            log.warn(e.toString()); // after changing class GerritBandanaContext - ClassCastException may occurs
-        }
-
         lastGerritChange = change;
 
         BuildLogger buildLogger = buildLoggerManager.getLogger(buildContext.getPlanResultKey());
