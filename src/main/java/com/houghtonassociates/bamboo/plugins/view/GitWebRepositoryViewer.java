@@ -92,18 +92,6 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
     private Map<String, String> changeIDtoRev = Maps.newHashMap();
 
     @Override
-    public String getHtmlForCommitsFull(@NotNull ResultsSummary resultsSummary, @NotNull RepositoryChangeset repositoryChangeset, @NotNull RepositoryData repositoryData) {
-
-        return null;
-    }
-
-    @Override
-    public String getHtmlForCommitsSummary(@NotNull ResultsSummary resultsSummary, @NotNull RepositoryChangeset repositoryChangeset, @NotNull RepositoryData repositoryData, int i) {
-
-        return null;
-    }
-
-    @Override
     public void populateFromParams(@NotNull ActionParametersMap params) {
         setWebRepositoryUrl(params.getString(GITWEB_REPOSITORY_URL));
         setWebRepositoryRepoName(params.getString(GITWEB_REPOSITORY_NAME));
@@ -526,5 +514,35 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
     public void
                     setCustomVariableContext(final CustomVariableContext customVariableContext) {
         this.customVariableContext = customVariableContext;
+    }
+
+    @Override
+    public String
+                    getHtmlForCommitsFull(@NotNull final ResultsSummary resultsSummary,
+                                          @NotNull final RepositoryChangeset repositoryChangeset,
+                                          @NotNull final RepositoryData repositoryData) {
+        final Map<String, Object> context = new HashMap<String, Object>();
+        context.put("buildResultsSummary", resultsSummary);
+        context.put("repositoryChangeset", repositoryChangeset);
+        context.put("repositoryData", repositoryData);
+        context.put("linkGenerator", this);
+
+        return templateRenderer.render(FULL_COMMIT_VIEW_TEMPLATE, context);
+    }
+
+    @Override
+    public String
+                    getHtmlForCommitsSummary(@NotNull final ResultsSummary resultsSummary,
+                                             @NotNull final RepositoryChangeset repositoryChangeset,
+                                             @NotNull final RepositoryData repositoryData,
+                                             final int maxChanges) {
+        final Map<String, Object> context = new HashMap<String, Object>();
+        context.put("buildResultsSummary", resultsSummary);
+        context.put("repositoryChangeset", repositoryChangeset);
+        context.put("repositoryData", repositoryData);
+        context.put("linkGenerator", this);
+        context.put("maxChanges", maxChanges);
+
+        return templateRenderer.render(SUMMARY_COMMIT_VIEW_TEMPLATE, context);
     }
 }
