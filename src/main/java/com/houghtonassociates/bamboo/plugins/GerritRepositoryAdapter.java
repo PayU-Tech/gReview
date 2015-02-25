@@ -41,7 +41,7 @@ import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
 import com.atlassian.bamboo.repository.AbstractStandaloneRepository;
-import com.atlassian.bamboo.repository.BranchDetectionCapableRepository;
+import com.atlassian.bamboo.repository.BranchInformationProvider;
 import com.atlassian.bamboo.repository.CustomVariableProviderRepository;
 import com.atlassian.bamboo.repository.Repository;
 import com.atlassian.bamboo.repository.RepositoryException;
@@ -82,7 +82,7 @@ import org.jetbrains.annotations.Nullable;
  * This class allows bamboo to use Gerrit as if it were a repository.
  */
 public class GerritRepositoryAdapter extends AbstractStandaloneRepository
-    implements  CustomSourceDirectoryAwareRepository, CustomVariableProviderRepository, BranchDetectionCapableRepository {
+    implements  CustomSourceDirectoryAwareRepository, CustomVariableProviderRepository, BranchInformationProvider {
 
     private static final long serialVersionUID = -3518800283574344591L;
 
@@ -816,7 +816,8 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         Map<String,String> customConfiguration = buildContext.getBuildDefinition().getCustomConfiguration();
         boolean gerritVerify = Boolean.parseBoolean(customConfiguration.get("custom.gerrit.run"));
         if (gerritVerify) {
-            AdministrationConfiguration config = administrationConfigurationManager.getAdministrationConfiguration();
+
+            AdministrationConfiguration config = administrationConfigurationAccessor.getAdministrationConfiguration();
             String resultsUrl = config.getBaseUrl() + "/browse/" + buildContext.getPlanResultKey().toString();
             getGerritDAO().verifyChange(null, change.getNumber(), change.getCurrentPatchSet().getNumber(),
                     String.format("Bamboo: Build started: %s", resultsUrl));
@@ -846,7 +847,7 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         return Collections.emptyMap();
     }
 
-    // BranchDetectionCapableRepository - implementations
+    // BranchInformationProvider - implementations
 
     @NotNull
     @Override
@@ -926,6 +927,12 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
     @Override
     public CommitContext getFirstCommit() throws RepositoryException {
         return null;
+    }
+
+    @Override
+    public boolean usePollingForBranchDetection() {
+
+        return true;
     }
 
 }

@@ -92,6 +92,18 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
     private Map<String, String> changeIDtoRev = Maps.newHashMap();
 
     @Override
+    public String getHtmlForCommitsFull(@NotNull ResultsSummary resultsSummary, @NotNull RepositoryChangeset repositoryChangeset, @NotNull RepositoryData repositoryData) {
+
+        return null;
+    }
+
+    @Override
+    public String getHtmlForCommitsSummary(@NotNull ResultsSummary resultsSummary, @NotNull RepositoryChangeset repositoryChangeset, @NotNull RepositoryData repositoryData, int i) {
+
+        return null;
+    }
+
+    @Override
     public void populateFromParams(@NotNull ActionParametersMap params) {
         setWebRepositoryUrl(params.getString(GITWEB_REPOSITORY_URL));
         setWebRepositoryRepoName(params.getString(GITWEB_REPOSITORY_NAME));
