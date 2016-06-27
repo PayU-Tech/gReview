@@ -19,13 +19,16 @@ import com.atlassian.bamboo.repository.RepositoryException;
 import com.houghtonassociates.bamboo.plugins.dao.GerritChangeVO.Approval;
 import com.houghtonassociates.bamboo.plugins.dao.GerritChangeVO.FileSet;
 import com.houghtonassociates.bamboo.plugins.dao.GerritChangeVO.PatchSet;
-import com.sonyericsson.hudson.plugins.gerrit.gerritevents.GerritConnectionConfig;
-import com.sonyericsson.hudson.plugins.gerrit.gerritevents.GerritQueryException;
-import com.sonyericsson.hudson.plugins.gerrit.gerritevents.GerritQueryHandler;
-import com.sonyericsson.hudson.plugins.gerrit.gerritevents.ssh.Authentication;
-import com.sonyericsson.hudson.plugins.gerrit.gerritevents.ssh.SshException;
-import com.sonyericsson.hudson.plugins.gerrit.gerritevents.workers.cmd.AbstractSendCommandJob;
+import com.sonymobile.tools.gerrit.gerritevents.GerritConnectionConfig;
+import com.sonymobile.tools.gerrit.gerritevents.GerritConnectionConfig2;
+import com.sonymobile.tools.gerrit.gerritevents.GerritQueryException;
+import com.sonymobile.tools.gerrit.gerritevents.GerritQueryHandler;
+import com.sonymobile.tools.gerrit.gerritevents.ssh.Authentication;
+import com.sonymobile.tools.gerrit.gerritevents.ssh.SshException;
+import com.sonymobile.tools.gerrit.gerritevents.watchdog.WatchTimeExceptionData;
+import com.sonymobile.tools.gerrit.gerritevents.workers.cmd.AbstractSendCommandJob;
 import net.sf.json.JSONObject;
+import org.apache.http.auth.Credentials;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -187,7 +190,7 @@ public class GerritService {
 
     private class GerritCmdProcessor extends AbstractSendCommandJob {
 
-        protected GerritCmdProcessor(GerritConnectionConfig config) {
+        protected GerritCmdProcessor(GerritConnectionConfig2 config) {
             super(config);
         }
 
@@ -199,7 +202,7 @@ public class GerritService {
 
     private GerritCmdProcessor getGerritCmdProcessor() {
         if (cmdProcessor == null) {
-            cmdProcessor = new GerritCmdProcessor(new GerritConnectionConfig() {
+            cmdProcessor = new GerritCmdProcessor(new GerritConnectionConfig2() {
 
                 @Override
                 public File getGerritAuthKeyFile() {
@@ -232,13 +235,38 @@ public class GerritService {
                 }
 
                 @Override
-                public int getNumberOfReceivingWorkerThreads() {
-                    return 2;
+                public String getGerritEMail() {
+                    return null;
                 }
 
                 @Override
-                public int getNumberOfSendingWorkerThreads() {
-                    return 2;
+                public String getGerritFrontEndUrl() {
+                    return null;
+                }
+
+                @Override
+                public String getGerritProxy() {
+                    return null;
+                }
+
+                @Override
+                public int getWatchdogTimeoutMinutes() {
+                    return 0;
+                }
+
+                @Override
+                public int getWatchdogTimeoutSeconds() {
+                    return 0;
+                }
+
+                @Override
+                public WatchTimeExceptionData getExceptionData() {
+                    return null;
+                }
+
+                @Override
+                public Credentials getHttpCredentials() {
+                    return null;
                 }
             });
         }
@@ -248,7 +276,7 @@ public class GerritService {
 
     private GerritQueryHandler getGerritQueryHandler() {
         if (gQueryHandler == null) {
-            gQueryHandler = new GerritQueryHandler(strHost, port, auth);
+            gQueryHandler = new GerritQueryHandler(strHost, port, null, auth);
         }
 
         return gQueryHandler;
