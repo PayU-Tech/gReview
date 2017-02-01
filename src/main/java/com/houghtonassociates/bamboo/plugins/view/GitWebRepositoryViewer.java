@@ -29,8 +29,6 @@ import com.atlassian.bamboo.variable.CustomVariableContext;
 import com.atlassian.bamboo.webrepository.AbstractWebRepositoryViewer;
 import com.atlassian.bamboo.webrepository.CommitUrlProvider;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
-import com.atlassian.util.concurrent.NotNull;
-import com.atlassian.util.concurrent.Nullable;
 import com.google.common.collect.Maps;
 import com.houghtonassociates.bamboo.plugins.GerritRepositoryAdapter;
 import com.houghtonassociates.bamboo.plugins.dao.GerritChangeVO;
@@ -38,6 +36,8 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -92,20 +92,20 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
     private Map<String, String> changeIDtoRev = Maps.newHashMap();
 
     @Override
-    public void populateFromParams(@NotNull ActionParametersMap params) {
+    public void populateFromParams(@Nonnull ActionParametersMap params) {
         setWebRepositoryUrl(params.getString(GITWEB_REPOSITORY_URL));
         setWebRepositoryRepoName(params.getString(GITWEB_REPOSITORY_NAME));
         setWebRepositoryPath(params.getString(GITWEB_REPOSITORY_PATH));
     }
 
     @Override
-    public void populateFromConfig(@NotNull HierarchicalConfiguration config) {
+    public void populateFromConfig(@Nonnull HierarchicalConfiguration config) {
         setWebRepositoryUrl(config.getString(GITWEB_REPOSITORY_URL));
         setWebRepositoryRepoName(config.getString(GITWEB_REPOSITORY_NAME));
         setWebRepositoryPath(config.getString(GITWEB_REPOSITORY_PATH));
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public HierarchicalConfiguration toConfiguration() {
         HierarchicalConfiguration configuration = super.toConfiguration();
@@ -119,10 +119,10 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
         return configuration;
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public ErrorCollection
-                    validate(@NotNull BuildConfiguration buildConfiguration) {
+                    validate(@Nonnull BuildConfiguration buildConfiguration) {
         ErrorCollection errorCollection = super.validate(buildConfiguration);
 
         String webRepositoryUrl =
@@ -413,7 +413,7 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
      * @return
      */
     @Nullable
-    public String getWebRepositoryUrlForFile(@NotNull CommitFile file,
+    public String getWebRepositoryUrlForFile(@Nonnull CommitFile file,
                                              RepositoryData repositoryData) {
         StringBuilder result = new StringBuilder();
         String revision = file.getRevision();
@@ -518,9 +518,9 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
 
     @Override
     public String
-                    getHtmlForCommitsFull(@NotNull final ResultsSummary resultsSummary,
-                                          @NotNull final RepositoryChangeset repositoryChangeset,
-                                          @NotNull final RepositoryData repositoryData) {
+                    getHtmlForCommitsFull(@Nonnull final ResultsSummary resultsSummary,
+                                          @Nonnull final RepositoryChangeset repositoryChangeset,
+                                          @Nonnull final RepositoryData repositoryData) {
         final Map<String, Object> context = new HashMap<String, Object>();
         context.put("buildResultsSummary", resultsSummary);
         context.put("repositoryChangeset", repositoryChangeset);
@@ -532,9 +532,9 @@ public class GitWebRepositoryViewer extends AbstractWebRepositoryViewer
 
     @Override
     public String
-                    getHtmlForCommitsSummary(@NotNull final ResultsSummary resultsSummary,
-                                             @NotNull final RepositoryChangeset repositoryChangeset,
-                                             @NotNull final RepositoryData repositoryData,
+                    getHtmlForCommitsSummary(@Nonnull final ResultsSummary resultsSummary,
+                                             @Nonnull final RepositoryChangeset repositoryChangeset,
+                                             @Nonnull final RepositoryData repositoryData,
                                              final int maxChanges) {
         final Map<String, Object> context = new HashMap<String, Object>();
         context.put("buildResultsSummary", resultsSummary);
