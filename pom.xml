@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.houghtonassociates.bamboo.plugins</groupId>
     <artifactId>gReview</artifactId>
-    <version>1.5.0-test</version>
+    <version>1.5.1-test</version>
     <organization>
         <name>Houghton Associates</name>
         <url>http://www.houghtonassociates.com</url>
@@ -15,11 +15,11 @@
     <properties>
         <bamboo.version>5.14.4.1</bamboo.version>
         <bamboo.data.version>5.14.4.1</bamboo.data.version>
-        <amps.version>6.2.11</amps.version>
+        <amps.version>8.0.0</amps.version>
         <slf4j.version>1.6.4</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
     <repositories>
         <repository>
@@ -132,7 +132,7 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>1.1.0.201109151100-r-ATLASSIAN-4</version>
+            <version>5.2.1.201812262042-r</version>
         </dependency>
         <!-- test scope -->
         <dependency>
@@ -158,7 +158,7 @@
         <plugins>
             <plugin>
                 <groupId>com.atlassian.maven.plugins</groupId>
-                <artifactId>maven-bamboo-plugin</artifactId>
+                <artifactId>bamboo-maven-plugin</artifactId>
                 <version>${amps.version}</version>
                 <extensions>true</extensions>
                 <configuration>

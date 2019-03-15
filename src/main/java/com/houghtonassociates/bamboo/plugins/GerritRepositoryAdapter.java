@@ -26,6 +26,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.configuration.HierarchicalConfiguration;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.log4j.Logger;
+import org.eclipse.jgit.api.CheckoutCommand;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.InitCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.transport.FetchConnection;
+import org.eclipse.jgit.transport.FetchResult;
+import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.SshTransport;
+import org.eclipse.jgit.transport.Transport;
+import org.eclipse.jgit.transport.URIish;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import com.atlassian.bamboo.author.AuthorCachingFacade;
 import com.atlassian.bamboo.bandana.BambooBandanaContext;
 import com.atlassian.bamboo.build.logger.BuildLogger;
@@ -59,24 +79,6 @@ import com.houghtonassociates.bamboo.plugins.dao.GerritService;
 import com.sonymobile.tools.gerrit.gerritevents.ssh.Authentication;
 import com.sonymobile.tools.gerrit.gerritevents.ssh.SshConnection;
 import com.sonymobile.tools.gerrit.gerritevents.ssh.SshConnectionFactory;
-import org.apache.commons.configuration.HierarchicalConfiguration;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.log4j.Logger;
-import org.eclipse.jgit.api.CheckoutCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.InitCommand;
-import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.transport.FetchConnection;
-import org.eclipse.jgit.transport.FetchResult;
-import org.eclipse.jgit.transport.RefSpec;
-import org.eclipse.jgit.transport.SshTransport;
-import org.eclipse.jgit.transport.Transport;
-import org.eclipse.jgit.transport.URIish;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * This class allows bamboo to use Gerrit as if it were a repository.
@@ -115,8 +117,6 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
     private static final String TEMPORARY_GERRIT_SSH_KEY_CHANGE =
         "temporary.gerrit.ssh.key.change";
 
-    private static final String REPOSITORY_GERRIT_USE_SHALLOW_CLONES =
-        "repository.gerrit.useShallowClones";
     private static final String REPOSITORY_GERRIT_USE_SUBMODULES =
         "repository.gerrit.useSubmodules";
     private static final String REPOSITORY_GERRIT_COMMAND_TIMEOUT =
@@ -160,7 +160,6 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
     private File sshKeyFile = null;
     private String sshPassphrase;
     private boolean drafts;
-    private boolean useShallowClones;
     private boolean useSubmodules;
     private boolean verboseLogs;
     private int commandTimeout;
@@ -450,8 +449,6 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
 
         drafts = config.getBoolean(REPOSITORY_GERRIT_DRAFTS, false);
 
-        useShallowClones =
-            config.getBoolean(REPOSITORY_GERRIT_USE_SHALLOW_CLONES);
         useSubmodules = config.getBoolean(REPOSITORY_GERRIT_USE_SUBMODULES);
         commandTimeout =
             config.getInt(REPOSITORY_GERRIT_COMMAND_TIMEOUT,
@@ -493,8 +490,6 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
 
         configuration.setProperty(REPOSITORY_GERRIT_DRAFTS,
                 drafts);
-        configuration.setProperty(REPOSITORY_GERRIT_USE_SHALLOW_CLONES,
-            useShallowClones);
         configuration.setProperty(REPOSITORY_GERRIT_USE_SUBMODULES,
             useSubmodules);
         configuration.setProperty(REPOSITORY_GERRIT_COMMAND_TIMEOUT,
@@ -529,7 +524,7 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         } catch (IOException e) {
             throw new RepositoryException(
                 textProvider
-                    .getText("repository.gerrit.messages.error.connection"));
+                    .getText("repository.gerrit.messages.error.connection"), e);
         }
 
         if (!sshConnection.isConnected()) {
@@ -610,7 +605,8 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
 
         GerritChangeVO change = getGerritDAO().getFirstUnverifiedChange(project, strBranch, drafts, lastVcsRevisionKey);
 
-        log.info(String.format("[%s] collectChangesSinceLastBuild last unverified is: %s", planKey, change ) );
+        log.info(String.format("[%s] collectChangesSinceLastBuild last unverified is: %s for project %s",
+                planKey, change, project ) );
 
         if ((change == null) && (lastVcsRevisionKey == null)) { // no waiting review and no last revision
 
@@ -694,8 +690,6 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
                 String.valueOf(DEFAULT_REBUILD_TIMEOUT_IN_MINUTES));
 
         buildConfiguration.clearTree(REPOSITORY_GERRIT_VERBOSE_LOGS);
-        buildConfiguration.setProperty(REPOSITORY_GERRIT_USE_SHALLOW_CLONES,
-            true);
         buildConfiguration.clearTree(REPOSITORY_GERRIT_USE_SUBMODULES);
     }
 
@@ -766,9 +760,9 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
                 // try clean work directory
                 FileUtils.cleanDirectory(sourceDirectory);
                 initCommand.call();
-            } catch (IOException e1) {
+            } catch (IOException | GitAPIException e1) {
                 buildLogger.addErrorLogEntry("", e);
-                throw new RepositoryException(e);
+                throw new RepositoryException(e1.getMessage(), e1);
             }
         }
 
@@ -776,20 +770,18 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
             buildLogger.addBuildLogEntry(String.format("Init .git into %s", sourceDirectory));
         }
 
-        Git git;
-        org.eclipse.jgit.lib.Repository repository = null;
-        Transport transport = null;
-        try {
-            git = Git.open(sourceDirectory);
-            repository = git.getRepository();
-            transport = Transport.open(repository,
-                    new URIish(String.format("ssh://%s@%s:%d/%s", username, hostname, port, project)));
-            ((SshTransport)transport).setSshSessionFactory(new GitSshSessionFactory(encryptionService.decrypt(sshKey), sshPassphrase));
+        try (Git git = Git.open(sourceDirectory);
+             org.eclipse.jgit.lib.Repository repository = git.getRepository();
+             Transport transport = Transport.open(repository,
+                     new URIish(String.format("ssh://%s@%s:%d/%s", username, hostname, port, project)))) {
+
+            ((SshTransport) transport).setSshSessionFactory(
+                    new GitSshSessionFactory(encryptionService.decrypt(sshKey), sshPassphrase));
             transport.setTimeout(commandTimeout);
 
             buildLogger.addBuildLogEntry(String.format("Fetch: %s %s", transport.getURI(), refSpec.getSource()));
             FetchResult fetchResult = transport.fetch(new GitProgressMonitor(buildLogger, verboseLogs),
-                    Arrays.asList(refSpec), useShallowClones ? 1 : 0);
+                    Arrays.asList(refSpec));
 
             buildLogger.addBuildLogEntry(fetchResult.getMessages());
 
@@ -802,14 +794,7 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
 
         } catch (Exception e) {
             buildLogger.addErrorLogEntry("", e);
-            throw new RepositoryException(e);
-        } finally {
-            if (transport!=null) {
-                transport.close();
-            }
-            if (repository!=null){
-                repository.close();
-            }
+            throw new RepositoryException(e.getMessage(), e);
         }
 
 
@@ -874,39 +859,30 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
             throw new RepositoryException(String.format("mkdir fail: %s", tempDir.getAbsolutePath()));
         }
 
-        Git.init().setDirectory(tempDir).call();
-        Git git;
-        org.eclipse.jgit.lib.Repository repository = null;
-        Transport transport = null;
         try {
-            git = Git.open(tempDir);
-            repository = git.getRepository();
-            transport = Transport.open(repository,
-                    new URIish(String.format("ssh://%s@%s:%d/%s", username, hostname, port, project)));
+            Git.init().setDirectory(tempDir).call();
 
-            ((SshTransport)transport).setSshSessionFactory(new GitSshSessionFactory(encryptionService.decrypt(sshKey), sshPassphrase));
-            transport.setTimeout(commandTimeout);
-            FetchConnection fetchConnection = transport.openFetch();
+            try (Git git = Git.open(tempDir);
+                 org.eclipse.jgit.lib.Repository repository = git.getRepository();
+                 Transport transport = Transport.open(repository,
+                         new URIish(String.format("ssh://%s@%s:%d/%s", username, hostname, port, project)))) {
 
-            for (Ref ref : fetchConnection.getRefs()) {
-                if ( Transport.REFSPEC_PUSH_ALL.matchSource(ref) ) {
-                    VcsBranch b = new VcsBranchImpl(ref.getName().substring("refs/heads/".length()));
-                    ret.add(b);
+                ((SshTransport) transport).setSshSessionFactory(
+                        new GitSshSessionFactory(encryptionService.decrypt(sshKey), sshPassphrase));
+                transport.setTimeout(commandTimeout);
+                FetchConnection fetchConnection = transport.openFetch();
+
+                for (Ref ref : fetchConnection.getRefs()) {
+                    if (Transport.REFSPEC_PUSH_ALL.matchSource(ref)) {
+                        VcsBranch b = new VcsBranchImpl(ref.getName().substring("refs/heads/".length()));
+                        ret.add(b);
+                    }
                 }
             }
 
-        } catch (IOException e) {
-            throw new RepositoryException(e);
-        } catch (URISyntaxException e) {
-            throw new RepositoryException(e);
+        } catch (IOException | URISyntaxException | GitAPIException e) {
+            throw new RepositoryException(e.getMessage(), e);
         } finally {
-            if (transport != null) {
-                transport.close();
-            }
-            if (repository != null) {
-                repository.close();
-            }
-
             try {
                 FileUtils.deleteDirectory(tempDir);
             } catch (IOException e) {
