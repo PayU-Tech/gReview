@@ -94,9 +94,17 @@ public class GerritProcessor extends BaseConfigurableBuildPlugin implements
             final Map<Long, PlanRepositoryDefinition> repositories = buildContext.getVcsRepositoryMap();
 
             for (PlanRepositoryDefinition rd : repositories.values()) {
-                if (rd.asLegacyData().getRepository() instanceof GerritRepositoryAdapter) {
+                Repository repository = null;
+
+                try {
+                    repository = rd.asLegacyData().getRepository();
+                } catch (UnsupportedOperationException e) {
+                    logger.debug("failed to retrieve repository as legacy data", e);
+                }
+
+                if (repository instanceof GerritRepositoryAdapter) {
                     logger.info("Updating Change Verification...");
-                    updateChangeVerification(rd.asLegacyData().getRepository(), rd.getId(), results);
+                    updateChangeVerification(repository, rd.getId(), results);
                 }
             }
         }
