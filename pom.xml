@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.houghtonassociates.bamboo.plugins</groupId>
     <artifactId>gReview</artifactId>
-    <version>1.5.1-test</version>
+    <version>1.5.2-test</version>
     <organization>
         <name>Houghton Associates</name>
         <url>http://www.houghtonassociates.com</url>
@@ -13,8 +13,8 @@
     <description>This is the Gerrit plugin for Atlassian Bamboo.</description>
     <packaging>atlassian-plugin</packaging>
     <properties>
-        <bamboo.version>5.14.4.1</bamboo.version>
-        <bamboo.data.version>5.14.4.1</bamboo.data.version>
+        <bamboo.version>6.10.4</bamboo.version>
+        <bamboo.data.version>6.10.4</bamboo.data.version>
         <amps.version>8.0.0</amps.version>
         <slf4j.version>1.6.4</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -71,7 +71,7 @@
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>
-            <version>0.1.44-1</version>
+            <version>0.1.54</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -132,7 +132,7 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>5.2.1.201812262042-r</version>
+            <version>5.2.2.201904231744-r</version>
         </dependency>
         <!-- test scope -->
         <dependency>
@@ -165,6 +165,7 @@
                     <productVersion>${bamboo.version}</productVersion>
                     <productDataVersion>${bamboo.data.version}</productDataVersion>
                     <allowGoogleTracking>false</allowGoogleTracking>
+                    <enableQuickReload>true</enableQuickReload>
                 </configuration>
             </plugin>
         </plugins>

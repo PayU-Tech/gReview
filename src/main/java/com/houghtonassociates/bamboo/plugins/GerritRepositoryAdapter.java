@@ -573,6 +573,9 @@ public class GerritRepositoryAdapter extends AbstractStandaloneRepository
         }
 
         @Override
+        public long getChainId() { return 0; }
+
+        @Override
         public String getPluginKey() {
             return getClass().getPackage().getName();
         }

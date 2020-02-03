@@ -1,12 +1,12 @@
 /**
  * Copyright 2012 Houghton Associates
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,98 +15,139 @@
  */
 package com.houghtonassociates.bamboo.plugins.view;
 
-import com.atlassian.bamboo.plan.PlanHelper;
+import com.atlassian.bamboo.build.ChainResultsAction;
+import com.atlassian.bamboo.chains.ChainResultsSummary;
+import com.atlassian.bamboo.plan.PlanKeys;
+import com.atlassian.bamboo.plan.PlanResultKey;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
+import com.atlassian.bamboo.plan.cache.ImmutableJob;
+import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.repository.Repository;
+import com.atlassian.bamboo.repository.RepositoryDefinition;
+import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.resultsummary.vcs.RepositoryChangeset;
-import com.atlassian.bamboo.ww2.actions.chains.ViewChainResult;
+import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.ww2.aware.permissions.PlanReadSecurityAware;
+import com.google.common.collect.Lists;
 import com.houghtonassociates.bamboo.plugins.GerritRepositoryAdapter;
 import com.houghtonassociates.bamboo.plugins.dao.GerritChangeVO;
 import com.houghtonassociates.bamboo.plugins.dao.GerritService;
 import org.apache.log4j.Logger;
 
-import java.util.List;
-
 /**
  * @author Jason Huntley
- * 
+ *
  */
-public class ViewGerritChainResultsAction extends ViewChainResult implements
-    PlanReadSecurityAware {
+public class ViewGerritChainResultsAction extends ChainResultsAction implements PlanReadSecurityAware {
 
     private static final long serialVersionUID = 1L;
-    private GerritChangeVO changeVO = null;
-    private GerritService gerritService = null;
-    private GerritRepositoryAdapter repository = null;
-    private static final Logger log = Logger
-        .getLogger(ViewGerritChainResultsAction.class);
-    private static final String GERRIT_REPOSITORY_PLUGIN_KEY =
-        "com.houghtonassociates.bamboo.plugins.gReview:gerrit";
+    private static final Logger LOG = Logger.getLogger(ViewGerritChainResultsAction.class);
+    private static final String GERRIT_REPOSITORY_PLUGIN_KEY = "com.houghtonassociates.bamboo.plugins.gReview:gerrit";
+
+    private GerritChangeVO changeVO;
+    private GerritService gerritService;
 
     public ViewGerritChainResultsAction() {
-        super();
         changeVO = new GerritChangeVO();
     }
 
 
-    public GerritRepositoryAdapter getRepository() {
-        if (repository == null) {
-            Repository repo = PlanHelper.getDefaultRepository(this.getImmutablePlan());
-
-            if (repo instanceof GerritRepositoryAdapter) {
-                repository = (GerritRepositoryAdapter) repo;
-            }
-        }
-
-        return repository;
-    }
-
-
-    public GerritService getGerritService() {
-        if (gerritService == null) {
-                gerritService = getRepository().getGerritDAO();
-        }
-
-        return gerritService;
-    }
-
     @Override
-    public String doExecute() throws Exception {
-        final String revision = this.getRevision();
+    public String execute() throws Exception {
+        updateChangeVO();
 
-        if (revision == null) {
-            changeVO = new GerritChangeVO();
-        } else {
-            final GerritChangeVO change =
-                getGerritService().getChangeByRevision(revision);
-
-            if (change == null) {
-                log.error(this.getTextProvider().getText(
-                    "repository.gerrit.messages.error.retrieve"));
-                changeVO = new GerritChangeVO();
+        if (getImmutableChain() == null || getImmutableChain().isMarkedForDeletion()) {
+            addActionError(getText("chain.error.noChain", Lists.newArrayList(getPlanKey())));
+            return ERROR;
+        } else if (getChainResult() == null) {
+            if (getChainResultNumber() > 0) {
+                PlanResultKey planResultKey = PlanKeys.getPlanResultKey(getImmutableChain().getPlanKey(), getChainResultNumber());
+                ChainResultsSummary chainResult = resultsSummaryManager.getResultsSummary(planResultKey, ChainResultsSummary.class);
+                if (chainResult == null) {
+                    addActionError(getText("chain.error.noChainResult", Lists.newArrayList(getPlanKey() + "-" + getChainResultNumber())));
+                    return ERROR;
+                } else {
+                    setChainResult(chainResult);
+                }
             } else {
-                changeVO = change;
+                addActionError(getText("chain.error.noChainResult", Lists.newArrayList(getPlanKey() + "-" + getChainResultNumber())));
+                return ERROR;
             }
         }
-        return super.doExecute();
+
+        return SUCCESS;
     }
 
     public GerritChangeVO getChange() {
         return changeVO;
     }
 
-    public String getChangeID() {
-        return changeVO.getId();
+    public String getRevision() {
+        String result = null;
+
+        for (RepositoryChangeset changeset : getResultsSummary().getRepositoryChangesets()) {
+            if (changeset.getRepositoryData().getPluginKey().equals(GERRIT_REPOSITORY_PLUGIN_KEY)) {
+                result = changeset.getChangesetId();
+                break;
+            }
+        }
+
+        return result;
     }
 
-    public String getRevision() {
-        final List<RepositoryChangeset> changesets =
-            this.getResultsSummary().getRepositoryChangesets();
-        for (RepositoryChangeset changeset : changesets) {
-            if (changeset.getRepositoryData().getPluginKey()
-                .equals(GERRIT_REPOSITORY_PLUGIN_KEY))
-                return changeset.getChangesetId();
+    private void updateChangeVO() throws RepositoryException {
+        final String revision = this.getRevision();
+
+        if (revision == null) {
+            changeVO = new GerritChangeVO();
+        } else {
+            final GerritChangeVO change = getGerritService().getChangeByRevision(revision);
+
+            if (change == null) {
+                LOG.error(this.getTextProvider().getText("repository.gerrit.messages.error.retrieve"));
+                changeVO = new GerritChangeVO();
+            } else {
+                changeVO = change;
+            }
         }
-        return null;
+    }
+
+    private static RepositoryDefinition getDefaultRepository(ImmutablePlan plan) {
+        ImmutableJob job = (ImmutableJob)Narrow.to(plan, ImmutableJob.class);
+        if (job != null) {
+            return job.getParent().getEffectiveRepositoryDefinitions().get(0);
+        }
+
+        ImmutableChain chain = (ImmutableChain) Narrow.to(plan, ImmutableChain.class);
+        if (chain != null) {
+            return chain.getEffectiveRepositoryDefinitions().get(0);
+        }
+
+        throw new IllegalArgumentException("Don't know how to get repository definitions for " + plan.getClass());
+    }
+
+    private GerritRepositoryAdapter getRepository() {
+        GerritRepositoryAdapter repository = null;
+
+        Repository repo = getDefaultRepository(getImmutablePlan()).getRepository();
+
+        if (repo instanceof GerritRepositoryAdapter) {
+            repository = (GerritRepositoryAdapter) repo;
+        }
+
+        return repository;
+    }
+
+    private GerritService getGerritService() throws RepositoryException {
+        if (gerritService == null) {
+            Repository repo = getDefaultRepository(getImmutablePlan()).getRepository();
+
+            if (repo instanceof GerritRepositoryAdapter) {
+                GerritRepositoryAdapter gra = getRepository();
+                gerritService = gra.getGerritDAO();
+            }
+        }
+
+        return gerritService;
     }
 }

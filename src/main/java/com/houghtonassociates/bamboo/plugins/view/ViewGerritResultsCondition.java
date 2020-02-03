@@ -15,20 +15,14 @@
  */
 package com.houghtonassociates.bamboo.plugins.view;
 
-import com.atlassian.bamboo.build.Job;
-import com.atlassian.bamboo.chains.Chain;
-import com.atlassian.bamboo.plan.IncorrectPlanTypeException;
 import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.PlanHelper;
 import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.PlanManager;
-import com.atlassian.bamboo.repository.Repository;
+import com.atlassian.bamboo.vcs.configuration.PlanRepositoryDefinition;
 import com.atlassian.plugin.PluginParseException;
 import com.atlassian.plugin.web.Condition;
-import com.google.common.collect.Lists;
-import com.houghtonassociates.bamboo.plugins.GerritRepositoryAdapter;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +30,9 @@ import java.util.Map;
  * 
  */
 public class ViewGerritResultsCondition implements Condition {
+
+    private static final String GERRIT_REPOSITORY_PLUGIN_KEY =
+            "com.houghtonassociates.bamboo.plugins.gReview:gerrit";
 
     private PlanManager planManager;
 
@@ -58,9 +55,9 @@ public class ViewGerritResultsCondition implements Condition {
     public boolean shouldDisplay(Map<String, Object> context) {
         final String buildKey = (String) context.get("buildKey");
         Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(buildKey));
-        Repository repo = PlanHelper.getDefaultRepository(plan);
+        PlanRepositoryDefinition prd = PlanHelper.getDefaultPlanRepositoryDefinition(plan);
 
-        if (repo instanceof GerritRepositoryAdapter) {
+        if (prd != null && GERRIT_REPOSITORY_PLUGIN_KEY.equals(prd.getPluginKey())) {
             return true;
         }
 
