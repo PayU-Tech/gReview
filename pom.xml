@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.houghtonassociates.bamboo.plugins</groupId>
     <artifactId>gReview</artifactId>
-    <version>1.5.2-test</version>
+    <version>1.5.3</version>
     <organization>
         <name>Houghton Associates</name>
         <url>http://www.houghtonassociates.com</url>
@@ -13,8 +13,8 @@
     <description>This is the Gerrit plugin for Atlassian Bamboo.</description>
     <packaging>atlassian-plugin</packaging>
     <properties>
-        <bamboo.version>6.10.4</bamboo.version>
-        <bamboo.data.version>6.10.4</bamboo.data.version>
+        <bamboo.version>7.2.4</bamboo.version>
+        <bamboo.data.version>7.2.4</bamboo.data.version>
         <amps.version>8.0.0</amps.version>
         <slf4j.version>1.6.4</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -25,7 +25,7 @@
         <repository>
             <id>jenkinsci</id>
             <name>jenkinsci-releases</name>
-            <url>http://repo.jenkins-ci.org/releases</url>
+            <url>https://repo.jenkins-ci.org/releases</url>
         </repository>
         <repository>
             <id>atlassian-public</id>
@@ -36,7 +36,7 @@
         <pluginRepository>
             <id>jenkinsci</id>
             <name>jenkinsci-releases</name>
-            <url>http://repo.jenkins-ci.org/releases</url>
+            <url>https://repo.jenkins-ci.org/releases</url>
         </pluginRepository>
         <pluginRepository>
             <id>atlassian-public</id>
